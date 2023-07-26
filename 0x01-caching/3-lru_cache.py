@@ -1,39 +1,47 @@
 #!/usr/bin/python3
-""" LRUCache module"""
+""" LRU Caching """
 from base_caching import BaseCaching
 
 
 class LRUCache(BaseCaching):
-    """ LRUCache inherits from BaseCaching and is a caching system
-    """
-
+    """ Class that inherits from BaseCaching and is a caching system """
     def __init__(self):
-        """ Initialize LRUCache
-        """
         super().__init__()
-        self.order = []  # To track the order of item usage
+        self.head, self.tail = '-', '='
+        self.next, self.prev = {}, {}
+        self.handle(self.head, self.tail)
+
+    def handle(self, head, tail):
+        """ LRU algorithm, handle elements """
+        self.next[head], self.prev[tail] = tail, head
+
+    def _remove(self, key):
+        """ LRU algorithm, remove element """
+        self.handle(self.prev[key], self.next[key])
+        del self.prev[key], self.next[key], self.cache_data[key]
+
+    def _add(self, key, item):
+        """ LRU algorithm, add element """
+        self.cache_data[key] = item
+        self.handle(self.prev[self.tail], key)
+        self.handle(key, self.tail)
+        if len(self.cache_data) > BaseCaching.MAX_ITEMS:
+            print("DISCARD: {}".format(self.next[self.head]))
+            self._remove(self.next[self.head])
 
     def put(self, key, item):
-        """ Add an item in the cache using LRU algorithm
-        """
-        if key is not None and item is not None:
+        """ Assign to the dictionary """
+        if key and item:
             if key in self.cache_data:
-                self.order.remove(key)  # Remove the key from the order list
-            elif len(self.cache_data) >= self.MAX_ITEMS:
-                # Get the least recently used key from the order list
-                lru_key = self.order.pop(0)
-                print(f"DISCARD: {lru_key}")
-                del self.cache_data[lru_key]
-
-            self.cache_data[key] = item
-            self.order.append(key)  # Append the key to the end of the order list
+                self._remove(key)
+            self._add(key, item)
 
     def get(self, key):
-        """ Get an item by key from the cache
-        """
-        if key is not None and key in self.cache_data:
-            # Move the key to the end of the order list to indicate it was recently used
-            self.order.remove(key)
-            self.order.append(key)
-            return self.cache_data[key]
-        return None
+        """ Return the value linked """
+        if key is None or self.cache_data.get(key) is None:
+            return None
+        if key in self.cache_data:
+            value = self.cache_data[key]
+            self._remove(key)
+            self._add(key, value)
+            return value
