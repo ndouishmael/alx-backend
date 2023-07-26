@@ -1,49 +1,65 @@
 #!/usr/bin/python3
-""" LFU Caching """
-from base_caching import BaseCaching
-from collections import OrderedDict
+''' LFU Caching: Create a class LFUCache that inherits from BaseCaching
+                 and is a caching system '''
+
+BaseCaching = __import__('base_caching').BaseCaching
 
 
 class LFUCache(BaseCaching):
-    """ Class that inherits from BaseCaching and is a caching system """
+    ''' An LFU cache.
+        Inherits all behaviors from BaseCaching except, upon any attempt to add
+        an entry to the cache when it is at max capacity (as specified by
+        BaseCaching.MAX_ITEMS), it discards the least frequently used entry to
+        accommodate for the new one.
+        Attributes:
+          __init__ - method that initializes class instance
+          put - method that adds a key/value pair to cache
+          get - method that retrieves a key/value pair from cache '''
+
     def __init__(self):
+        ''' Initialize class instance. '''
         super().__init__()
-        self.lru_cache = OrderedDict()
-        self.lfu_cache = {}
+        self.keys = []
+        self.uses = {}
 
     def put(self, key, item):
-        """ Assign to the dictionary, LFU algorithm """
-        if key in self.lru_cache:
-            del self.lru_cache[key]
-        if len(self.lru_cache) > BaseCaching.MAX_ITEMS - 1:
-            min_value = min(self.lfu_cache.values())
-            lfu_keys = [k for k, v in self.lfu_cache.items() if v == min_value]
-            if len(lfu_keys) == 1:
-                print("DISCARD:", lfu_keys[0])
-                self.lru_cache.pop(lfu_keys[0])
-                del self.lfu_cache[lfu_keys[0]]
+        ''' Add key/value pair to cache data.
+            If cache is at max capacity (specified by BaseCaching.MAX_ITEMS),
+            discard least frequently used entry to accommodate new entry. '''
+
+        if key is not None and item is not None:
+            if (len(self.keys) == BaseCaching.MAX_ITEMS and
+                    key not in self.keys):
+                discard = self.keys.pop(self.keys.index(self.findLFU()))
+                del self.cache_data[discard]
+                del self.uses[discard]
+                print('DISCARD: {:s}'.format(discard))
+            self.cache_data[key] = item
+            if key not in self.keys:
+                self.keys.append(key)
+                self.uses[key] = 0
             else:
-                for k, _ in list(self.lru_cache.items()):
-                    if k in lfu_keys:
-                        print("DISCARD:", k)
-                        self.lru_cache.pop(k)
-                        del self.lfu_cache[k]
-                        break
-        self.lru_cache[key] = item
-        self.lru_cache.move_to_end(key)
-        if key in self.lfu_cache:
-            self.lfu_cache[key] += 1
-        else:
-            self.lfu_cache[key] = 1
-        self.cache_data = dict(self.lru_cache)
+                self.keys.append(self.keys.pop(self.keys.index(key)))
+                self.uses[key] += 1
 
     def get(self, key):
-        """ Return the value linked """
-        if key in self.lru_cache:
-            value = self.lru_cache[key]
-            self.lru_cache.move_to_end(key)
-            if key in self.lfu_cache:
-                self.lfu_cache[key] += 1
-            else:
-                self.lfu_cache[key] = 1
-            return value
+        ''' Return value stored in `key` key of cache.
+            If key is None or does not exist in cache, return None. '''
+        if key is not None and key in self.cache_data:
+            self.keys.append(self.keys.pop(self.keys.index(key)))
+            self.uses[key] += 1
+            return self.cache_data[key]
+        return None
+
+    def findLFU(self):
+        ''' Return key of least frequently used item in cache.
+            If multiple items have the same amount of uses, return the least
+            recently used one. '''
+        items = list(self.uses.items())
+        freqs = [item[1] for item in items]
+        least = min(freqs)
+
+        lfus = [item[0] for item in items if item[1] == least]
+        for key in self.keys:
+            if key in lfus:
+                return key
