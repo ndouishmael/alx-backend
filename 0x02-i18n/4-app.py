@@ -1,38 +1,40 @@
 #!/usr/bin/env python3
-"""A Basic Flask app with internationalization support.
+""" Basic Flask app module.
 """
-from flask_babel import Babel
 from flask import Flask, render_template, request
-
-class Config:
-    """Represents a Flask Babel configuration.
-    """
-    LANGUAGES = ["en", "fr"]
-    BABEL_DEFAULT_LOCALE = "en"
-    BABEL_DEFAULT_TIMEZONE = "UTC"
+from flask_babel import Babel, gettext
 
 app = Flask(__name__)
-app.config.from_object(Config)
-app.url_map.strict_slashes = False
 babel = Babel(app)
 
-@babel.localeselector
-def get_locale() -> str:
-    """Retrieves the locale for a web page.
+
+class Config(object):
+    """ Language and time zone settings.
     """
-    locale = request.args.get('locale')
+    LANGUAGES = ['en', 'fr']
+    BABEL_DEFAULT_LOCALE = 'en'
+    BABEL_DEFAULT_TIMEZONE = 'UTC'
 
-    if locale and locale in app.config["LANGUAGES"]:
-        return locale
 
-    # Resort to the default behavior by using the best match based on accept languages
-    return request.accept_languages.best_match(app.config["LANGUAGES"])
+app.config.from_object(Config)
+
 
 @app.route('/')
-def get_index() -> str:
-    """The home/index page.
+def hello():
+    """ Hello method.
     """
     return render_template('4-index.html')
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+
+@babel.localeselector
+def get_locale():
+    """ Method to determine the best match with our supported languages.
+    """
+    local = request.args.get('locale')
+    if local and local in app.config['LANGUAGES']:
+        return local
+    return request.accept_languages.best_match(app.config['LANGUAGES'])
+
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port="5000")
